@@ -4,4 +4,4 @@
 [submodule "godot"]
 	path = godot
 	url = https://github.com/NoctemCat/godot.git
-	branch = libgodot_static_mono_web
+	branch = libgodot_mono_web

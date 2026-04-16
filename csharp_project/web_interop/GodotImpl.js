@@ -21,15 +21,6 @@ const Godot = async (moduleConfig) => {
     dotnet
         // Pass emscripten config.
         .withModuleConfig(moduleConfig)
-        // Uncomment to enable diagnostics.
-        // .withDiagnosticTracing(true) // enable JavaScript tracing
-        // .withConfig({
-        // 	environmentVariables: {
-        // 		"MONO_LOG_LEVEL": "debug", //enable Mono VM detailed logging by
-        // 		"MONO_LOG_MASK": "all", // categories, could be also gc,aot,type,...
-        // 	}
-        // })
-
         .withConfig({
             // We passed -sPTHREAD_POOL_SIZE=0 as C# depend on it, but it also provides its
             // own setting to configure the initial thread pool size that we can use.
@@ -89,7 +80,6 @@ const Godot = async (moduleConfig) => {
     // As "callMain" is missing, we can use it ourselves,
     // as this is what Godot calls to start wasm.
     Module.callMain = (args) => {
-        // args.push("--verbose");
         return runMain(dotnetConfig.mainAssemblyName, args);
     }
     return Module;
