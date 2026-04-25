@@ -1,6 +1,8 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 #if GODOT_WEB
@@ -16,6 +18,7 @@ public partial class Player : CharacterBody3D
     [Export] float Sensitivity { get; set; } = 0.5f;
     [Export] float Speed { get; set; } = 5.0f;
     [Export] float JumpVelocity { get; set; } = 4.5f;
+    [Export] PackedScene BallScene { get; set; } = null!;
 
     public Player()
     {
@@ -35,6 +38,18 @@ public partial class Player : CharacterBody3D
         {
             GD.Print($"Read {floatValue}");
         }
+
+        GD.Seed(123);
+        GD.Print($"Random 123: {GD.Randi()}");
+
+        string original = @"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus eu eros rhoncus, vehicula velit eget, laoreet dui. Cras sollicitudin justo vitae nibh condimentum, in mattis nunc tincidunt. Sed placerat viverra ex vitae laoreet. Donec id nisi id libero tincidunt fringilla vel at eros. Praesent eget pharetra odio. Vivamus tincidunt sagittis augue, ac sodales ante accumsan ut. Donec eu rhoncus nisi, sit amet tempor purus. Proin pharetra sed purus id finibus. Nullam tortor nisi, euismod at dapibus eu, commodo ac nunc.
+Donec purus lorem, rhoncus in mattis vel, ultrices posuere lorem. Praesent scelerisque auctor varius. Suspendisse elit magna, eleifend non eleifend ut, finibus et sem. Cras interdum faucibus tellus nec feugiat. Fusce est augue, consectetur in nunc congue, vehicula cursus nisi. Etiam vel ligula ex. Nam vel odio quis.";
+        byte[] bytes = Encoding.Unicode.GetBytes(original);
+        byte[] compressed = GD.Compress(bytes);
+        byte[] bytesBack = GD.Decompress(compressed, bytes.Length + 8);
+
+        GD.Print($"Original: {bytes.Length}, Compressed: {compressed.Length}, Back: {bytesBack.Length}, Comparison: {bytes.SequenceEqual(bytesBack)}");
+
         GD.Print("Player constructor exit");
     }
 
@@ -50,10 +65,11 @@ public partial class Player : CharacterBody3D
         TestThread();
 
         RunCrypro();
-#if !GODOT_THREADS_ENABLED
-        // Causes too much deadlocks at random with multithreading
-        RunHTTP();
-#endif
+        if (OS.HasFeature("nothreads"))
+        {
+            // Causes too much deadlocks at rundom with multithreading
+            RunHTTP();
+        }
 #if GODOT_WEB
         _ = TestAdvancedAsync();
 #endif
@@ -81,8 +97,13 @@ public partial class Player : CharacterBody3D
         Vector3 direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
         if (direction != Vector3.Zero)
         {
-            velocity.X = direction.X * Speed;
-            velocity.Z = direction.Z * Speed;
+            var speed = Speed;
+            if (Input.IsActionPressed("run"))
+            {
+                speed *= 1.5f;
+            }
+            velocity.X = direction.X * speed;
+            velocity.Z = direction.Z * speed;
         }
         else
         {
@@ -92,6 +113,14 @@ public partial class Player : CharacterBody3D
 
         Velocity = velocity;
         MoveAndSlide();
+
+        if (Input.IsActionJustPressed("Click"))
+        {
+            RigidBody3D ball = BallScene.Instantiate<RigidBody3D>();
+            var forward = -Pivot.GlobalTransform.Basis.Z;
+            ball.Position = GetParent<Node3D>().ToLocal(Pivot.GlobalTransform.Origin + forward * 2);
+            GetParent().AddChild(ball);
+        }
     }
 
     List<Vector2> mouseBuffer = [];
@@ -278,9 +307,26 @@ public partial class Player : CharacterBody3D
     {
         Task.Run(TestThreadImpl);
     }
-    internal async void TestThreadImpl()
+    internal async Task TestThreadImpl()
     {
-        await Task.Delay(2000);
-        GD.PrintS("Hello Thread", Thread.CurrentThread.ManagedThreadId);
+        GD.Print(">>>> Entering Thread");
+        if (OS.HasFeature("nothreads"))
+        {
+            await Task.Delay(2000);
+        }
+        else
+        {
+            Thread.Sleep(2000);
+        }
+        GD.PrintS(">>>> Hello Thread", Thread.CurrentThread.ManagedThreadId);
+        if (OS.HasFeature("nothreads"))
+        {
+            await Task.Delay(2000);
+        }
+        else
+        {
+            Thread.Sleep(2000);
+        }
+        GD.Print(">>>> Exiting Thread");
     }
 }

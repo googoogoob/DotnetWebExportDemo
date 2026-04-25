@@ -1,109 +1,65 @@
+# C# Web Export Demo (Through LibGodot)
 
-# C# Web Export Demo (With bonus LibGodot)
-
-Only works from Windows and Linux. Link https://noctemcat.itch.io/wasm-demo
+Link https://noctemcat.itch.io/wasm-demo
 
 ## Major considerations 
 
 - It will force the support for Emscripten 3.1.56 until C# is updated (https://github.com/dotnet/runtime/issues/113786).
-- CoreCLR also uses `Object` without namespace, so it causes duplicate symbols for `Object` vtable. If wasm moves to CoreCLR 
-https://github.com/dotnet/runtime/issues/121511 before `llvm-objcopy` adds support for wasm --redefine-sym https://github.com/llvm/llvm-project/issues/50623 , it will force either putting godot's `Object` inside a namespace or to somehow continuing using mono. Actually maybe if emscripten is updated 
-it will be new enough to use allow-multiple-definition https://github.com/llvm/llvm-project/pull/97699 
+- Can't export with GDExtension supported, C# can't be build with `-sMAIN_MODULE` flag.
+- Currently it is not a problem, but CoreCLR also uses `Object` without namespace, so it causes duplicate symbols for `Object` vtable. 
+If wasm will move to CoreCLR https://github.com/dotnet/runtime/issues/121511 after updating emscipten to be new enough to use 
+allow-multiple-definition https://github.com/llvm/llvm-project/pull/97699 this won't be a problem.
 
-## Small annoyancies
+## Small annoyances
 
-- C# with multithreading runs main C# thread as a thread https://github.com/dotnet/runtime/issues/101421 .
-- Added offscreen canvas for it, but it needs a hack to transfer offscreen canvas to the C# "main" thread, see "web_interop/transferCanvas.js".
-- No webxr. Should be possible to add it, but I think it would be better to wait for a newer emscripten.
+- Slow to export, as it needs to link Godot as a static library.
+- C# multithreading runs main C# thread as a thread https://github.com/dotnet/runtime/issues/101421, https://github.com/dotnet/runtime/issues/126438.
+- C# multithreading is incompatible with webxr, similar to `proxy_to_pthread`.
+- C# multithreading `await Task.Delay` causes a massive lag spike for the first time.
+- Can't use Godot as lto library.
+- When changing from multithreaded build to singlethreaded C# needs full rebuild, i.e. deleting `.godot/mono/temp`.
+- C# JS interop in multithreading doesn't allow sync C#->JS->C# or JS->C#->JS, with `jsThreadBlockingMode: 'ThrowWhenBlockingWait'` 
+it allows sync C#->JS and JS->C#, but that's all. More info https://github.com/dotnet/runtime/issues/101421#issuecomment-2072439395 
+and this seems also correct https://dev.to/lostbeard/blazor-wasms-deputy-thread-model-will-break-javascript-interop-heres-why-that-matters-1n9n.
 
-## What is left to do
+## Big hacks
 
-- Validate scons changes for correct usage.
-- Export plugin. for now it just doesn't use it for C# and skips it. Basically it treats it as a C++ custom template.
-- SDK integration. Figured there would be no point in it if it won't be used. And I have no idea how to integrate it gracefully.
+- Calls web's `_export_begin` after extracting templates. It's needed for passing the path to the static library in `ExportPlugin.cs._ExportBegin`. 
+I think it is possible to add a separate step after extracting templates, but before _export_file begins... not sure tho.
 
 ## How to build
 
-All the genaration runs through bash script, bash script commands expects you to be in the base folder to work correctly.
-Also after it are the native commands if you want to see what it generates or want to use them yourself.
-
-### C# editor
+Steps:
+- Update Godot fork
 ```
-bash run build godot editor mono
+cd godot
+git submodule update --init
 ```
-Replace "godot_app" with the actual created editor
+- C# install `wasm-tools` workload
 ```
-Godot folder:
-scons target=editor library_type=executable extra_suffix=executable production=yes debug_symbols=yes compiledb=yes disable_path_overrides=no module_mono_enabled=yes
-./bin/godot_app --generate-mono-glue ./modules/mono/glue --headless
+dotnet workload install wasm-tools
+```
+- Read https://docs.godotengine.org/en/latest/engine_details/development/compiling/compiling_with_dotnet.html along
+and compile editor with mono enabled
+```
+scons target=editor production=yes module_mono_enabled=yes
+```
+- Generate glue
+```
+<godot_binary> --generate-mono-glue ./modules/mono/glue --headless
+```
+- Build and put build assemblies in the place `csharp_project/nuget.config` expects
+```
 ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir ./bin --push-nupkgs-local ./../.nuget_local/
 ```
-### C# editor LibGodot (optional)
-
-Tested if LibGodot C# editor would work, it does(export templates also work). It needs bootstrapping from a native C# editor with already built C# libraries.
+- Install and activate Emscripten 3.1.56 https://emscripten.org/docs/getting_started/downloads.html#emsdk-install-targets.
+- Build release template
 ```
-bash run build godot editor shared mono disable_crash_handler=yes
-bash run start csharp --editor
+# multithreaded
+scons target=template_release platform=web library_type=static_library module_mono_enabled=yes lto=none disable_crash_handler=yes proxy_to_pthread=yes
+# singlethreaded
+scons target=template_release platform=web library_type=static_library module_mono_enabled=yes lto=none disable_crash_handler=yes threads=no
 ```
-```
-Godot folder:
-scons target=editor library_type=shared_library extra_suffix=shared production=yes debug_symbols=yes compiledb=yes disable_path_overrides=no module_mono_enabled=yes disable_crash_handler=yes
-CSharp folder:
-dotnet run -c Debug -p:GodotType=shared -p:GodotArch=x86_64 --editor
-```
-### C# web static LibGodot
-
-Prerequesites:
-- Built C# editor with C# libraries. 
-- **Install and activate Emscripten 3.1.56**.
-- Replace -p:GodotEditor=REPLACEWITHGODOTEDITOREXE with the actual name of your godot editor that was previous compiled.
-- Cannot have a space in the path leading up to the project.
-- Must be on C: drive (if using Windows).
-```
-bash run build godot template_release static mono platform=web disable_crash_handler=yes
-bash run build csharp template_release static platform=web -p:GodotEditor=REPLACEWITHGODOTEDITOREXE
-emrun csharp_project/export/Web_static_release/
-```
-```
-Godot folder:
-scons target=template_release platform=web library_type=static_library extra_suffix=static compiledb=yes disable_path_overrides=no module_mono_enabled=yes disable_crash_handler=yes
-CSharp folder:
-dotnet publish -v:d -c ExportRelease -r browser-wasm -p:GodotType=static -p:GodotArch=wasm32 -p:GodotEditor=REPLACEWITHGODOTEDITOREXE
-emrun csharp_project/export/Web_static_release/
-```
-Or a version without threads:
-```
-bash run build godot template_release static mono platform=web disable_crash_handler=yes threads=no
-bash run build csharp template_release static platform=web suffix=nothreads -p:GodotEditor=REPLACEWITHGODOTEDITOREXE
-emrun csharp_project/export/WebNothreads_static_release/
-```
-```
-Godot folder:
-scons target=template_release platform=web library_type=static_library extra_suffix=static compiledb=yes disable_path_overrides=no module_mono_enabled=yes disable_crash_handler=yes threads=no
-CSharp folder:
-dotnet publish -v:d -c ExportRelease -r browser-wasm -p:GodotType=static -p:GodotArch=wasm32 -p:ExtraSuffix=nothreads
-emrun csharp_project/export/WebNothreads_static_release/
-```
-## Help
-```
-bash run --help
-
-Available commands:
-  bash run build godot [editor] [template_debug] [template_release] [executable|static|shared] [mono] [platform=(linuxbsd|windows|macos|web)] [scons args]
-  bash run build cpp [editor] [template_debug] [template_release] [static|shared] [suffix=*] [arch=*] platform=(linuxbsd|windows|macos|web) [cmake configure args]
-  bash run build csharp [editor] [template_debug] [template_release] [static|shared] [suffix=*] [arch=*] [platform=(linuxbsd|windows|macos|web)] [msbuild args]
-  bash run start cpp [suffix=*] [arch=*] platform=(linuxbsd|windows|macos|web) [cmake configure args]
-  bash run start csharp [suffix=*] [arch=*] [platform=(linuxbsd|windows|macos|web)] [msbuild args]
-
-Arguments inside [] are optional, arguments with '=' expect value, '*' is any value
-
-Available modifiers:
-  bash run -i [command]: will enable interactive mode, you can choose if you want to lauch the command
-```
-## Other
-
-### Why are there C++?
-It's what made it all possible, as at first I needed to add static LibGodot, which is so much easier to make work with C++ first.
-
-### Any commands for it?
-Nope, they should be similar to C# ones tho. For the web I moved to C# after the basics were working, so cmake is not updated.
+- Select compiled `.zip` template in export window custom template
+- Select the correct `Thread Support`, it is important
+- Export the game
