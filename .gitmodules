@@ -2,3 +2,7 @@
 	path = godot
 	url = https://github.com/NoctemCat/godot.git
 	branch = libgodot_mono_web
+[submodule "GameDemo"]
+	path = GameDemo
+	url = https://github.com/NoctemCat/GameDemo.git
+	branch = demo_web

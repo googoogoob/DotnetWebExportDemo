@@ -227,10 +227,10 @@
                             statusProgress.removeAttribute('max');
                         }
                     },
-                }).then(() => {
+                }).then(async () => {
                     console.log("Game started");
                     setStatusMode('hidden');
-                    const exports = engine.dotnetAssemblyExports;
+                    const exports = await engine.getDotnetExports();
                     let meaning = 42;
                     if (!GODOT_THREADS_ENABLED) {
                         // Can't call it with multithreading, as it calls JSImport. Works in single threaded

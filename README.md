@@ -1,6 +1,7 @@
 # C# Web Export Demo (Through LibGodot)
 
 Link https://noctemcat.itch.io/wasm-demo
+Chickensoft GameDemo port: https://noctemcat.itch.io/port-chickensoft-demo
 
 ## Major downsides 
 
@@ -17,6 +18,8 @@ allow-multiple-definition https://github.com/llvm/llvm-project/pull/97699 this w
 - C# multithreading is incompatible with webxr, similar to `proxy_to_pthread`.
 - C# multithreading `await Task.Delay` causes a massive lag spike for the first time.
 - Can't use Godot as lto library.
+- Some combination of flags may need set `WasmCachePath`, on Windows the path must be on the same
+drive as C# install.
 - When changing from multithreaded build to singlethreaded C# needs full rebuild, i.e. deleting `.godot/mono/temp`.
 - C# JS interop in multithreading doesn't allow sync C#->JS->C# or JS->C#->JS, with `jsThreadBlockingMode: 'ThrowWhenBlockingWait'` 
 it allows sync C#->JS and JS->C#, but that's all. More info https://github.com/dotnet/runtime/issues/101421#issuecomment-2072439395 
