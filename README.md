@@ -20,7 +20,8 @@ allow-multiple-definition https://github.com/llvm/llvm-project/pull/97699 this w
 - Can't use Godot as lto library.
 - Some combination of flags may need set `WasmCachePath`, on Windows the path must be on the same
 drive as C# install.
-- When changing from multithreaded build to singlethreaded C# needs full rebuild, i.e. deleting `.godot/mono/temp`.
+- When changing from multithreaded build to singlethreaded C# needs full rebuild, i.e. deleting `.godot/mono/temp`. Actually it needs
+it pretty often, if you had errors first try deleting `.godot/mono/temp` to be sure.
 - C# JS interop in multithreading doesn't allow sync C#->JS->C# or JS->C#->JS, with `jsThreadBlockingMode: 'ThrowWhenBlockingWait'` 
 it allows sync C#->JS and JS->C#, but that's all. More info https://github.com/dotnet/runtime/issues/101421#issuecomment-2072439395 
 and this seems also correct https://dev.to/lostbeard/blazor-wasms-deputy-thread-model-will-break-javascript-interop-heres-why-that-matters-1n9n.
@@ -64,5 +65,5 @@ scons target=template_release platform=web library_type=static_library module_mo
 scons target=template_release platform=web library_type=static_library module_mono_enabled=yes lto=none disable_crash_handler=yes threads=no
 ```
 - Select compiled `.zip` template in export window custom template
-- Select the correct `Thread Support`, it is important
+- Select the correct `Thread Support`
 - Export the game

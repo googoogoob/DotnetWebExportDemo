@@ -3,9 +3,11 @@
         <AssemblyName>CSharpSample</AssemblyName>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnableDynamicLoading>true</EnableDynamicLoading>
         <!-- <GodotDisableRuntimeMarshalling>true</GodotDisableRuntimeMarshalling> -->
         <!-- <GodotDisableRuntimeMarshalling>false</GodotDisableRuntimeMarshalling> -->
+        <WasmRunWasmOpt Condition=" '$(Configuration)' == 'ExportDebug' ">false</WasmRunWasmOpt>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(GodotTargetPlatform)' == 'web' ">

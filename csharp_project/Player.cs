@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Linq;
 using System.Reflection;
+using Godot.NativeInterop;
 
 
 #if GODOT_WEB
@@ -21,11 +22,31 @@ namespace Sample;
 
 public partial class Player : CharacterBody3D
 {
+    enum PlayerEnum
+    {
+        None,
+        One,
+    }
+    enum PlayerEnumInt : int
+    {
+        None,
+        One,
+    }
+    enum PlayerEnumLong : long
+    {
+        None,
+        One,
+    }
+
     [Export] Node3D Pivot { get; set; } = null!;
     [Export] float Sensitivity { get; set; } = 0.5f;
     [Export] float Speed { get; set; } = 5.0f;
     [Export] float JumpVelocity { get; set; } = 4.5f;
     [Export] PackedScene BallScene { get; set; } = null!;
+
+    [Export] PlayerEnum one;
+    [Export] PlayerEnumInt two;
+    [Export] PlayerEnumLong three;
 
     public Player()
     {
@@ -49,7 +70,10 @@ public partial class Player : CharacterBody3D
         }
 
         GD.Seed(123);
-        GD.Print($"Random 123: {GD.Randi()}");
+        GD.Print($"Randi 123: {GD.Randi()}");
+        GD.Print($"Randf 123: {GD.Randf()}");
+        GD.Print($"Randfn 123: {GD.Randfn(1.0, 10.0)}");
+        GD.Print($"RandRange 123: {GD.RandRange(1.0, 10.0)}");
 
         string original = @"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus eu eros rhoncus, vehicula velit eget, laoreet dui. Cras sollicitudin justo vitae nibh condimentum, in mattis nunc tincidunt. Sed placerat viverra ex vitae laoreet. Donec id nisi id libero tincidunt fringilla vel at eros. Praesent eget pharetra odio. Vivamus tincidunt sagittis augue, ac sodales ante accumsan ut. Donec eu rhoncus nisi, sit amet tempor purus. Proin pharetra sed purus id finibus. Nullam tortor nisi, euismod at dapibus eu, commodo ac nunc.
 Donec purus lorem, rhoncus in mattis vel, ultrices posuere lorem. Praesent scelerisque auctor varius. Suspendisse elit magna, eleifend non eleifend ut, finibus et sem. Cras interdum faucibus tellus nec feugiat. Fusce est augue, consectetur in nunc congue, vehicula cursus nisi. Etiam vel ligula ex. Nam vel odio quis.";
@@ -65,7 +89,56 @@ Donec purus lorem, rhoncus in mattis vel, ultrices posuere lorem. Praesent scele
     public override void _Ready()
     {
         GD.Print("Player _Ready");
-        // Input.UseAccumulatedInput = false;
+
+        // RuntimeError: function signature mismatch check
+        GD.Print($"godotsharp_variant_as_bool {((Variant)1).AsBool()}");
+        GD.Print($"godotsharp_variant_as_int {((Variant)"1").AsInt64()}");
+        GD.Print($"godotsharp_variant_as_float {((Variant)1).AsDouble()}");
+        GD.Print($"godotsharp_variant_as_string int {((Variant)1234).AsString()}");
+        GD.Print($"godotsharp_variant_as_string bool {((Variant)true).AsString()}");
+        GD.Print($"godotsharp_variant_as_vector2 {((Variant)new Vector2I(1, 1)).AsVector2()}");
+        GD.Print($"godotsharp_variant_as_vector2i {((Variant)new Vector2(1, 1)).AsVector2I()}");
+        GD.Print($"godotsharp_variant_as_rect2 {((Variant)new Rect2I(1, 1, 0, 1)).AsRect2()}");
+        GD.Print($"godotsharp_variant_as_rect2i {((Variant)new Rect2(1.5f, 1.5f, 1.5f, 0)).AsRect2I()}");
+        GD.Print($"godotsharp_variant_as_vector3 {((Variant)new Vector2(1, 1)).AsVector3()}");
+        GD.Print($"godotsharp_variant_as_vector3i {((Variant)new Vector2(1, 1)).AsVector3I()}");
+        GD.Print($"godotsharp_variant_as_transform2d {((Variant)Transform3D.Identity).AsTransform2D()}");
+        GD.Print($"godotsharp_variant_as_vector4 {((Variant)new Vector2(1, 1)).AsVector4()}");
+        GD.Print($"godotsharp_variant_as_vector4i {((Variant)new Vector2(1, 1)).AsVector4I()}");
+        GD.Print($"godotsharp_variant_as_plane {new Variant().AsPlane()}");
+        GD.Print($"godotsharp_variant_as_quaternion {((Variant)Transform3D.Identity).AsQuaternion()}");
+        GD.Print($"godotsharp_variant_as_aabb {new Variant().AsAabb()}");
+        GD.Print($"godotsharp_variant_as_basis {((Variant)Transform3D.Identity).AsBasis()}");
+        GD.Print($"godotsharp_variant_as_transform3d {((Variant)Transform2D.Identity).AsTransform3D()}");
+        GD.Print($"godotsharp_variant_as_projection {((Variant)Transform2D.Identity).AsProjection()}");
+        GD.Print($"godotsharp_variant_as_color {((Variant)1).AsColor()}");
+        GD.Print($"godotsharp_variant_as_string_name {((Variant)"something").AsStringName()}");
+        GD.Print($"godotsharp_variant_as_node_path {((Variant)"path1").AsNodePath()}");
+        GD.Print($"godotsharp_variant_as_rid {((Variant)this).AsRid()}");
+        GD.Print($"godotsharp_variant_as_callable {new Variant().AsCallable()}");
+        GD.Print($"godotsharp_variant_as_signal {new Variant().AsSignal()}");
+        GD.Print($"godotsharp_variant_as_dictionary {new Variant().AsGodotDictionary()}");
+        GD.Print($"godotsharp_variant_as_array {((Variant)new byte[] { 1, 1, 1, 1 }).AsGodotArray()}");
+        GD.Print($"godotsharp_variant_as_packed_byte_array ", (Variant)((Variant)new Godot.Collections.Array { 1, 1, 1, 1 }).AsByteArray());
+        GD.Print($"godotsharp_variant_as_packed_int32_array ", (Variant)((Variant)new Godot.Collections.Array { 1, 1, 1, 1 }).AsInt32Array());
+        GD.Print($"godotsharp_variant_as_packed_float32_array ", (Variant)((Variant)new Godot.Collections.Array { 1, 1, 1, 1 }).AsFloat32Array());
+        GD.Print($"godotsharp_variant_as_packed_float64_array ", (Variant)((Variant)new Godot.Collections.Array { 1, 1, 1, 1 }).AsFloat64Array());
+        GD.Print($"godotsharp_variant_as_packed_string_array ", (Variant)((Variant)new Godot.Collections.Array { 1, 1, 1, 1 }).AsStringArray());
+        GD.Print($"godotsharp_variant_as_packed_vector2_array ", (Variant)((Variant)new Godot.Collections.Array { new Vector2(1, 1) }).AsVector2Array());
+        GD.Print($"godotsharp_variant_as_packed_vector3_array ", (Variant)((Variant)new Godot.Collections.Array { new Vector2(1, 1) }).AsVector3Array());
+        GD.Print($"godotsharp_variant_as_packed_vector4_array ", (Variant)((Variant)new Godot.Collections.Array { new Vector2(1, 1) }).AsVector4Array());
+        GD.Print($"godotsharp_variant_as_packed_color_array ", (Variant)((Variant)new Godot.Collections.Array { 1, 1, 1, 1 }).AsColorArray());
+        GD.Print($"godotsharp_color_from_ok_hsl {Color.FromOkHsl(1.0f, 0.0f, 1.0f)}");
+
+        GD.Print($"Call(\"GetEnum1\") {Call("GetEnum1")}");
+        GD.Print($"Call(\"GetEnum2\") {Call("GetEnum2")} ");
+        GD.Print($"Call(\"GetEnum3\") {Call("GetEnum3")}");
+        GD.Print($"Callable.Call(\"GetEnum1\") {new Callable(this, "GetEnum1").Call()}");
+
+        Godot.Collections.Array arr = [1, 2];
+        arr.Resize(4);
+        GD.PrintS("arr", arr);
+
         Input.MouseMode = Input.MouseModeEnum.Captured;
 
         GD.Seed(123);
@@ -83,6 +156,11 @@ Donec purus lorem, rhoncus in mattis vel, ultrices posuere lorem. Praesent scele
         _ = TestAdvancedAsync();
 #endif
     }
+
+
+    PlayerEnum GetEnum1() => one;
+    PlayerEnumInt GetEnum2() => two;
+    PlayerEnumLong GetEnum3() => three;
 
     public override void _PhysicsProcess(double delta)
     {
