@@ -48,6 +48,10 @@ public partial class Player : CharacterBody3D
     [Export] PlayerEnumInt two;
     [Export] PlayerEnumLong three;
 
+    [Export] public CustomRigidbody[]? BoidesArray { get; set; }
+    [Export] public Godot.Collections.Array<CustomRigidbody>? BoidesGodotArray { get; set; }
+    [Export] public Node3D[]? NodeArray { get; set; }
+
     public Player()
     {
         GD.Print("Player constructor");
@@ -134,6 +138,10 @@ Donec purus lorem, rhoncus in mattis vel, ultrices posuere lorem. Praesent scele
         GD.Print($"Call(\"GetEnum2\") {Call("GetEnum2")} ");
         GD.Print($"Call(\"GetEnum3\") {Call("GetEnum3")}");
         GD.Print($"Callable.Call(\"GetEnum1\") {new Callable(this, "GetEnum1").Call()}");
+
+        GD.PrintS("BoidesArray", (Variant)(BoidesArray ?? new Variant()));
+        GD.PrintS("BoidesGodotArray", (Variant)(BoidesGodotArray ?? new Variant()));
+        GD.PrintS("NodeArray", (Variant)(NodeArray ?? new Variant()));
 
         Godot.Collections.Array arr = [1, 2];
         arr.Resize(4);
