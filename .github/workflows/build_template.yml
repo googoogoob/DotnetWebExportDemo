@@ -81,7 +81,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: godot-editor
-          path: godot/bin/godot.linuxbsd.editor.x86_64.mono
+          path: |
+            godot/bin/godot.linuxbsd.editor.x86_64.mono
+            godot/bin/GodotSharp/
           retention-days: 30
 
       - name: Upload web template
