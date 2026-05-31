@@ -1,0 +1,65 @@
+name: Build Godot Web Template
+
+on:
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y scons build-essential pkg-config \
+            libx11-dev libxcursor-dev libxinerama-dev \
+            libgl1-mesa-dev libglu-dev libasound2-dev \
+            libpulse-dev libudev-dev libxi-dev libxrandr-dev \
+            python3 python3-pip
+
+      - name: Install wasm-tools
+        run: dotnet workload install wasm-tools
+
+      - name: Install Emscripten 3.1.56
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk && ./emsdk install 3.1.56 && ./emsdk activate 3.1.56
+
+      - name: Build editor
+        run: |
+          cd godot
+          scons target=editor production=yes module_mono_enabled=yes -j2
+
+      - name: Generate Mono glue
+        run: |
+          cd godot
+          GODOT_BIN=$(ls bin/ | grep -E "godot\.linuxbsd\.editor" | head -1)
+          ./bin/$GODOT_BIN --generate-mono-glue ./modules/mono/glue --headless
+
+      - name: Build assemblies
+        run: |
+          cd godot
+          python3 ./modules/mono/build_scripts/build_assemblies.py \
+            --godot-output-dir ./bin \
+            --push-nupkgs-local ../.nuget_local/
+
+      - name: Build web template
+        run: |
+          source emsdk/emsdk_env.sh
+          cd godot
+          scons target=template_release platform=web \
+            library_type=static_library \
+            module_mono_enabled=yes \
+            lto=none disable_crash_handler=yes threads=no -j2
+
+      - name: Upload template
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-template
+          path: godot/bin/*.zip
+          retention-days: 30
